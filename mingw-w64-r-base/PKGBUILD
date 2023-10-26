@@ -1,0 +1,73 @@
+# Maintainer: Jeroen Ooms <jeroen@berkeley.edu>
+
+_realname=r-base
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=4.3.9000
+pkgrel=1
+pkgdesc="The R Programming Language (mingw-w64)"
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
+url="https://www.r-project.org/"
+makedepends=($([[ ${MINGW_PACKAGE_PREFIX} == *-clang-* ]] && echo "${MINGW_PACKAGE_PREFIX}-fc" || echo "${MINGW_PACKAGE_PREFIX}-gcc-fortran"))
+depends=("${MINGW_PACKAGE_PREFIX}-cc"
+             "${MINGW_PACKAGE_PREFIX}-openmp"
+             "${MINGW_PACKAGE_PREFIX}-bzip2"
+             "${MINGW_PACKAGE_PREFIX}-cairo"
+             "${MINGW_PACKAGE_PREFIX}-curl"
+             "${MINGW_PACKAGE_PREFIX}-icu"
+             "${MINGW_PACKAGE_PREFIX}-libtiff"
+             "${MINGW_PACKAGE_PREFIX}-libjpeg"
+             "${MINGW_PACKAGE_PREFIX}-libpng"
+             "${MINGW_PACKAGE_PREFIX}-pcre2"
+             "${MINGW_PACKAGE_PREFIX}-xz"
+             "${MINGW_PACKAGE_PREFIX}-zlib"
+             "texinfo"
+             "texinfo-tex"
+             "sed")
+options=('staticlibs')
+license=("spdx:GPL-2.0-or-later")
+tclbundle=($([[ ${MINGW_PACKAGE_PREFIX} == clangarm ]] && echo "Tcl-aarch64-5878-5877.zip" || echo "Tcl-5878-5877.zip"))
+source=(R-source.tar.gz::https://cran.r-project.org/src/base-prerelease/R-devel.tar.gz
+        "https://www.r-project.org/nosvn/winutf8/ucrt3/${tclbundle}"
+        'faketex')
+noextract=(R-source.tar.gz)
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP')
+
+prepare() {
+  # Put pdflatex on the path (assume Miktex 2.9)
+  msg2 "Checking if pdflatex and texindex can be found..."
+  export PATH="${PWD}/aarch64-w64-mingw32.static.posix/bin:$PATH:$(cygpath $LOCALAPPDATA)/Programs/MiKTeX/miktex/bin/x64"
+  echo "PATH: $PATH"
+#  pdflatex --version
+  texindex --version
+  texi2any --version
+  make --version
+  perl --version
+
+  # Extract tarball with symlink workarounds
+  msg2 "Extracting R source tarball..."
+  rm -rf ${srcdir}/R-source
+  mkdir -p ${srcdir}/R-source
+  MSYS="winsymlinks:lnk" tar -xf ${srcdir}/R-source.tar.gz -C ${srcdir}/R-source --strip-components=1
+  cp -Rf ${srcdir}/Tcl "${srcdir}/R-source/"
+}
+
+build() {
+  # Add custom flags to MkRules.local
+  cd ${srcdir}/R-source/src/gnuwin32/
+  echo "WIN =" > MkRules.local
+  echo "ICU_LIBS = $(pkg-config --libs-only-l icu-i18n)" >> MkRules.local
+  echo "CURL_LIBS = $(pkg-config --libs-only-l libcurl)" >> MkRules.local
+  if [[ ${MSYSTEM} == CLANG* ]]; then
+    echo "USE_LLVM = 1" >> MkRules.local
+  fi
+  export PDFLATEX="${srcdir}/faketex"
+  make distribution
+}
+
+package() {
+  cp "${srcdir}/R-source/src/gnuwin32/cran/*.exe" "${pkgdir}/"
+}
