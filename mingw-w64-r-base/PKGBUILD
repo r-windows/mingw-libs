@@ -9,7 +9,7 @@ pkgdesc="The R Programming Language (mingw-w64)"
 arch=('any')
 mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32' 'clangarm64')
 url="https://www.r-project.org/"
-makedepends=($([[ ${MINGW_PACKAGE_PREFIX} == *-clang-* ]] && echo "${MINGW_PACKAGE_PREFIX}-fc" || echo "${MINGW_PACKAGE_PREFIX}-gcc-fortran"))
+makedepends=("${MINGW_PACKAGE_PREFIX}-fc")
 depends=("${MINGW_PACKAGE_PREFIX}-cc"
              "${MINGW_PACKAGE_PREFIX}-openmp"
              "${MINGW_PACKAGE_PREFIX}-bzip2"
@@ -21,16 +21,17 @@ depends=("${MINGW_PACKAGE_PREFIX}-cc"
              "${MINGW_PACKAGE_PREFIX}-libpng"
              "${MINGW_PACKAGE_PREFIX}-pcre2"
              "${MINGW_PACKAGE_PREFIX}-xz"
+             "${MINGW_PACKAGE_PREFIX}-libwebp"
              "${MINGW_PACKAGE_PREFIX}-zlib"
              "texinfo"
              "texinfo-tex"
              "sed")
 options=('staticlibs')
 license=("spdx:GPL-2.0-or-later")
-tclbundle=($([[ ${MINGW_PACKAGE_PREFIX} == clangarm ]] && echo "Tcl-aarch64-5878-5877.zip" || echo "Tcl-5878-5877.zip"))
+tclbundle=($([[ "$MINGW_ARCH" == "clangarm64" ]] && echo "Tcl-aarch64-5878-5877.zip" || echo "Tcl-5878-5877.zip"))
 source=(R-source.tar.gz::https://cran.r-project.org/src/base-prerelease/R-devel.tar.gz
         "https://www.r-project.org/nosvn/winutf8/ucrt3/${tclbundle}"
-        'faketex')
+        'pdflatex')
 noextract=(R-source.tar.gz)
 sha256sums=('SKIP'
             'SKIP'
@@ -64,8 +65,8 @@ build() {
   if [[ ${MSYSTEM} == CLANG* ]]; then
     echo "USE_LLVM = 1" >> MkRules.local
   fi
-  export PDFLATEX="${srcdir}/faketex"
-  make distribution
+  # Puts the pdflatex stub on the PATH
+  PATH="${PATH}:${srcdir}" make distribution
 }
 
 package() {

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# This is a stub for pdflatex because R does not build without it
+echo "Stub makeindex: $@"
+exit 0

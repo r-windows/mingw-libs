@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# This is a stub for pdflatex because R does not build without it
 v=$(echo "$@" | grep -o '[^ ]*\.tex')
 if [ -z "$v" ]; then
 echo "Failed to parse tex file from: pdflatex $@"
